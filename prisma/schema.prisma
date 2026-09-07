@@ -1,0 +1,742 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  fullName  String
+  role      UserRole  @default(FARM_WORKER)
+  farm      Farm?     @relation(fields: [farmId], references: [id])
+  farmId    String?
+  active    Boolean   @default(true)
+  lastLogin DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([farmId])
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  FARM_OWNER
+  FARM_MANAGER
+  VETERINARIAN
+  ACCOUNTANT
+  FARM_WORKER
+  SALES_OFFICER
+}
+
+// ============================================
+// FARM & BASIC INFO
+// ============================================
+model Farm {
+  id                 String              @id @default(cuid())
+  name               String
+  location           String
+  address            String?
+  phone              String
+  email              String?
+  registrationNo     String?
+  coordinates        String? // JSON string with lat,lng
+  farmSize           Float? // in acres/hectares
+  farmType           FarmType            @default(MIXED)
+  owner              String
+  ownerContact       String
+  currency           String              @default("USD")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  animals            Animal[]
+  buildings          Building[]
+  fields             Field[]
+  transactions       Transaction[]
+  employees          Employee[]
+  inventoryItems     InventoryItem[]
+  inventoryMovements InventoryMovement[]
+  FeedInventory      FeedInventory[]
+  reminders          Reminder[]
+}
+
+enum FarmType {
+  DAIRY
+  LIVESTOCK
+  CROP
+  MIXED
+  POULTRY
+  FISHERY
+}
+
+model Building {
+  id        String   @id @default(cuid())
+  farm      Farm     @relation(fields: [farmId], references: [id])
+  farmId    String
+  name      String
+  type      String // shed, barn, storage, etc.
+  capacity  Int
+  condition String // good, fair, poor
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([farmId])
+}
+// ============================================
+// ANIMALS & ANIMAL MANAGEMENT
+// ============================================
+
+enum AnimalStatus {
+  ACTIVE
+  SOLD
+  DEAD
+  TRANSFERRED
+  RENTED
+  MISSING
+}
+
+model Animal {
+  id      String @id @default(cuid())
+  farm    Farm   @relation(fields: [farmId], references: [id])
+  farmId  String
+
+  // Identification
+  earTag      String   @unique
+  rfidTag     String?  @unique
+  name        String
+  species     String   // cow, goat, sheep, pig, etc.
+  breed       String
+  gender      String   // male, female
+  dateOfBirth DateTime
+  color       String?
+  markings    String?
+  imageData   String?  @db.Text
+
+  // Status
+  status          AnimalStatus @default(ACTIVE)
+  acquisitionDate DateTime
+  acquisitionCost Float?
+  purchaseFrom    String?
+
+  // Physical data
+  weight Float? // current weight
+  height Float?
+  chest  Float?
+
+  // Legacy Parentage (Plain text)
+  sire String?
+  dam  String?
+
+  // Relational Pedigree
+  damId           String?
+  damAnimal       Animal?  @relation("AnimalDam", fields: [damId], references: [id], onDelete: SetNull)
+  offspringAsDam  Animal[] @relation("AnimalDam")
+
+  sireId          String?
+  sireAnimal      Animal?  @relation("AnimalSire", fields: [sireId], references: [id], onDelete: SetNull)
+  offspringAsSire Animal[] @relation("AnimalSire")
+
+  // Location
+  locationBuilding String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dairyRecords    DairyRecord[]
+  healthRecords   HealthRecord[]
+  breedingRecords BreedingRecord[]
+  weightHistory   WeightHistory[]
+  lactationCycles LactationCycle[]
+
+  @@index([farmId])
+  @@index([earTag])
+  @@index([status])
+  @@index([species])
+  @@index([damId])
+  @@index([sireId])
+}
+
+model WeightHistory {
+  id        String   @id @default(cuid())
+  animal    Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animalId  String
+  weight    Float
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([animalId])
+  @@index([date])
+}
+
+// ============================================
+// DAIRY MANAGEMENT
+// ============================================
+model DairyRecord {
+  id       String @id @default(cuid())
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animalId String
+
+  recordDate  DateTime
+  morningMilk Float // in liters
+  eveningMilk Float // in liters
+  totalMilk   Float       @default(0) // calculated
+  quality     MilkQuality @default(GOOD)
+  fat         Float? // percentage
+  protein     Float? // percentage
+  somatic     Float? // cell count
+
+  notes      String?
+  recordedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([animalId])
+  @@index([recordDate])
+}
+
+enum MilkQuality {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+model LactationCycle {
+  id       String @id @default(cuid())
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animalId String
+
+  startDate   DateTime
+  expectedEnd DateTime
+  actualEnd   DateTime?
+
+  totalProduction Float  @default(0) // in liters
+  peakProduction  Float?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([animalId])
+  @@index([startDate])
+}
+
+// ============================================
+// BREEDING & REPRODUCTION
+// ============================================
+model BreedingRecord {
+  id       String @id @default(cuid())
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animalId String
+
+  breedingType   BreedingType
+  dateOfBreeding DateTime
+
+  // For AI
+  technician String?
+  semen      String?
+
+  // For Natural Breeding
+  sireId String?
+
+  // Pregnancy info
+  pregnancyStatus PregnancyStatus @default(UNKNOWN)
+  expectedCalving DateTime?
+
+  // Calving info
+  actualCalvingDate DateTime?
+  calvingDifficulty String? // easy, moderate, difficult
+  calvesNumber      Int       @default(1)
+  calvesDetails     String? // JSON with details
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([animalId])
+  @@index([dateOfBreeding])
+}
+
+enum BreedingType {
+  ARTIFICIAL_INSEMINATION
+  NATURAL_MATING
+}
+
+enum PregnancyStatus {
+  UNKNOWN
+  PREGNANT
+  NOT_PREGNANT
+  DELIVERED
+  ABORTED
+}
+
+// ============================================
+// HEALTH & VETERINARY
+// ============================================
+model HealthRecord {
+  id       String @id @default(cuid())
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animalId String
+
+  recordType HealthRecordType
+  recordDate DateTime
+
+  // For Disease/Illness
+  disease   String?
+  symptoms  String?
+  diagnosis String?
+  treatment String?
+  outcome   TreatmentOutcome?
+
+  // For Vaccination
+  vaccineType String?
+  vaccineDate DateTime?
+  nextDueDate DateTime?
+  vaccinator  String?
+
+  // For Deworming
+  dewormType     String?
+  dewormDate     DateTime?
+  nextDewormDate DateTime?
+
+  veterinarian String?
+  cost         Float?
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([animalId])
+  @@index([recordDate])
+}
+
+enum HealthRecordType {
+  VACCINATION
+  DEWORMING
+  DISEASE_TREATMENT
+  INJURY
+  VETERINARY_VISIT
+  HEALTH_CHECK
+}
+
+enum TreatmentOutcome {
+  RECOVERED
+  ONGOING
+  DIED
+  TRANSFERRED
+}
+
+// ============================================
+// FEED & NUTRITION
+// ============================================
+model FeedInventory {
+  id     String  @id @default(cuid())
+  farm   Farm?   @relation(fields: [farmId], references: [id])
+  farmId String?
+
+  name         String
+  type         String // hay, grain, pellets, etc.
+  quantity     Float
+  unit         String // kg, bags, ton
+  costPerUnit  Float
+  supplier     String?
+  purchaseDate DateTime
+  expiryDate   DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// FINANCE & ACCOUNTING
+// ============================================
+model Transaction {
+  id     String @id @default(cuid())
+  farm   Farm   @relation(fields: [farmId], references: [id])
+  farmId String
+
+  transactionType TransactionType
+  category        String
+  description     String
+  amount          Float
+  date            DateTime
+
+  // For Income
+  sourceType String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  customerId String?
+  invoice    Invoice?  @relation(fields: [invoiceId], references: [id])
+  invoiceId  String?
+
+  // For Expense
+  vendor        String?
+  paymentMethod String?
+
+  status      TransactionStatus @default(PENDING)
+  referenceNo String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([farmId])
+  @@index([date])
+  @@index([transactionType])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Invoice {
+  id         String   @id @default(cuid())
+  invoiceNo  String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  invoiceDate DateTime
+  dueDate     DateTime?
+
+  items    InvoiceItem[]
+  subtotal Float         @default(0)
+  tax      Float         @default(0)
+  total    Float         @default(0)
+
+  status     InvoiceStatus @default(DRAFT)
+  paidAmount Float         @default(0)
+  notes      String?
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([invoiceDate])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PENDING
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+
+  description String
+  quantity    Float
+  unitPrice   Float
+  total       Float  @default(0) // calculated
+
+  @@index([invoiceId])
+}
+
+// ============================================
+// CUSTOMERS & SALES
+// ============================================
+model Customer {
+  id      String       @id @default(cuid())
+  name    String
+  type    CustomerType // individual, business, cooperative
+  phone   String
+  email   String?
+  address String?
+
+  accountBalance Float  @default(0)
+  creditLimit    Float?
+
+  notes String?
+
+  invoices     Invoice[]
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+  COOPERATIVE
+  PROCESSOR
+}
+
+// ============================================
+// INVENTORY & STORE
+// ============================================
+model InventoryItem {
+  id     String @id @default(cuid())
+  farm   Farm   @relation(fields: [farmId], references: [id])
+  farmId String
+
+  code     String @unique
+  name     String
+  category String // feed, medicine, equipment, etc.
+  quantity Float
+  unit     String // kg, liters, pieces, etc.
+
+  reorderLevel    Float
+  reorderQuantity Float
+
+  unitCost Float
+  supplier String?
+
+  location String? // where it's stored
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements InventoryMovement[]
+
+  @@unique([farmId, code])
+  @@index([farmId])
+  @@index([code])
+}
+
+model InventoryMovement {
+  id     String @id @default(cuid())
+  farm   Farm   @relation(fields: [farmId], references: [id])
+  farmId String
+
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId String
+
+  movementType MovementType
+  quantity     Float
+  unit         String
+
+  reason      String?
+  referenceNo String?
+  date        DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([farmId])
+  @@index([inventoryItemId])
+  @@index([date])
+}
+
+enum MovementType {
+  IN // Purchase/Received
+  OUT // Used/Consumed
+  TRANSFER // Between locations
+  ADJUSTMENT // Inventory correction
+  DAMAGE // Damaged items
+}
+
+// ============================================
+// CROPS & FIELDS
+// ============================================
+model Field {
+  id     String @id @default(cuid())
+  farm   Farm   @relation(fields: [farmId], references: [id])
+  farmId String
+
+  name     String
+  size     Float // in hectares or acres
+  location String?
+  soil     String? // soil type
+
+  notes String?
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  CropCycle CropCycle[]
+
+  @@index([farmId])
+}
+
+model CropCycle {
+  id      String @id @default(cuid())
+  field   Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  fieldId String
+
+  cropName String
+  variety  String?
+
+  plantingDate    DateTime
+  expectedHarvest DateTime?
+  harvestDate     DateTime?
+
+  quantity Float // expected/actual yield
+  unit     String // tons, bags, etc.
+
+  status CropStatus @default(PLANTED)
+  notes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+}
+
+enum CropStatus {
+  PLANNED
+  PLANTED
+  GROWING
+  READY_TO_HARVEST
+  HARVESTED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// EMPLOYEES & LABOR
+// ============================================
+model Employee {
+  id     String @id @default(cuid())
+  farm   Farm   @relation(fields: [farmId], references: [id])
+  farmId String
+
+  name       String
+  idNumber   String  @unique
+  position   String
+  department String?
+
+  phone   String
+  address String?
+
+  hireDate        DateTime
+  terminationDate DateTime?
+
+  baseSalary Float
+  currency   String @default("USD")
+
+  status EmployeeStatus @default(ACTIVE)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([farmId])
+  @@index([idNumber])
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  ON_LEAVE
+}
+
+// ============================================
+// EQUIPMENT & MACHINERY
+// ============================================
+model Equipment {
+  id           String  @id @default(cuid())
+  name         String
+  type         String
+  manufacturer String?
+  model        String?
+  serialNo     String? @unique
+
+  purchaseDate DateTime
+  purchaseCost Float?
+
+  lastServiceDate DateTime?
+  nextServiceDate DateTime?
+
+  status EquipmentStatus @default(OPERATIONAL)
+  notes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  UNDER_MAINTENANCE
+  REPAIR_NEEDED
+  RETIRED
+}
+
+// ============================================
+// NOTIFICATIONS & REMINDERS
+// ============================================
+model Reminder {
+  id           String       @id @default(cuid())
+  farm         Farm?        @relation(fields: [farmId], references: [id])
+  farmId       String?
+  title        String
+  description  String?
+  reminderType ReminderType
+
+  dueDate       DateTime
+  completed     Boolean   @default(false)
+  completedDate DateTime?
+
+  assignedTo String? // name of the employee/user responsible for this task
+
+  priority String @default("MEDIUM") // LOW, MEDIUM, HIGH
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([farmId])
+}
+
+enum ReminderType {
+  VACCINATION
+  DEWORMING
+  BREEDING
+  MILKING
+  MAINTENANCE
+  PAYMENT_DUE
+  INVENTORY_LOW
+  CUSTOM
+}
+
+// ============================================
+// ACTIVITY LOGS & AUDIT
+// ============================================
+model ActivityLog {
+  id          String  @id @default(cuid())
+  action      String
+  module      String // which module (animals, dairy, etc.)
+  description String?
+
+  userId    String?
+  userEmail String?
+
+  recordId String? // ID of the record affected
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([module])
+  @@index([createdAt])
+}

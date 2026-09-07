@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: fmis-db
+    environment:
+      POSTGRES_DB: fmis_db
+      POSTGRES_USER: fmis_user
+      POSTGRES_PASSWORD: fmis_password_secure_change_this
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fmis_user -d fmis_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FMIS Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fmis-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://fmis_user:fmis_password_secure_change_this@db:5432/fmis_db"
+      NODE_ENV: development
+      API_URL: "http://localhost:3000"
+      JWT_SECRET: "your-secret-key-change-this-in-production"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    restart: unless-stopped
+
+  # pgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fmis-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fmis.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
