@@ -11,8 +11,7 @@ function hashToken(token: string) {
 
 async function sendResetEmail(email: string, resetUrl: string) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn(`[PASSWORD RESET] SMTP is not configured. Reset URL for ${email}: ${resetUrl}`);
-    return;
+    throw new Error('SMTP is not configured for password recovery.');
   }
 
   const nodemailer = await import('nodemailer');

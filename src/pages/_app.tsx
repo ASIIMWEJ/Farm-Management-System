@@ -85,9 +85,10 @@ export default function App({
   pageProps: { session, ...pageProps },
 }: AppProps) {
   const router = useRouter();
+  const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
 
   useEffect(() => {
-    if (router.pathname !== '/login' && !localStorage.getItem('token')) {
+    if (!publicRoutes.includes(router.pathname) && !localStorage.getItem('token')) {
       router.replace('/login');
     }
   }, [router]);
