@@ -117,6 +117,10 @@ export default function Login() {
             </Button>
           </form>
 
+          <Button fullWidth variant="text" sx={{ mt: 1 }} onClick={() => router.push('/forgot-password')}>
+            Forgot password?
+          </Button>
+
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             Sign in with the administrator credentials configured for this farm.
           </Typography>
