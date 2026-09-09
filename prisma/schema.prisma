@@ -141,7 +141,13 @@ model Animal {
   status          AnimalStatus @default(ACTIVE)
   acquisitionDate DateTime
   acquisitionCost Float?
-  purchaseFrom    String?
+  purchaseFrom    String? // received from (e.g. seller/donor) when acquired
+
+  // Disposal (sold / died / given away / missing)
+  disposalDate   DateTime?
+  disposalReason String? // cause of death, or free-text reason
+  recipient      String? // buyer name, or person the animal was given to
+  disposalValue  Float? // sale price, if sold
 
   // Physical data
   weight Float? // current weight

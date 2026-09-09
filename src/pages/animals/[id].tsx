@@ -75,6 +75,10 @@ interface AnimalDetail {
   acquisitionDate: string;
   acquisitionCost?: number;
   purchaseFrom?: string;
+  disposalDate?: string;
+  disposalReason?: string;
+  recipient?: string;
+  disposalValue?: number;
   weight?: number;
   height?: number;
   chest?: number;
@@ -214,6 +218,20 @@ export default function AnimalProfile() {
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Sire (Father)</Typography><Typography>{animal.sireAnimal ? (animal.sireAnimal.name || animal.sireAnimal.earTag) : '—'}</Typography></Grid>
         </Grid>
       </Paper>
+
+      {animal.status !== 'ACTIVE' && (
+        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>Outcome</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Status</Typography><Typography>{animal.status}</Typography></Grid>
+            <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Date</Typography><Typography>{formatDate(animal.disposalDate)}</Typography></Grid>
+            <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">{animal.status === 'SOLD' ? 'Buyer' : 'Given To'}</Typography><Typography>{animal.recipient || '—'}</Typography></Grid>
+            <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Sale Price</Typography><Typography>{animal.disposalValue ?? '—'}</Typography></Grid>
+            <Grid item xs={12}><Typography variant="body2" color="textSecondary">{animal.status === 'DEAD' ? 'Cause of Death' : 'Notes'}</Typography><Typography>{animal.disposalReason || '—'}</Typography></Grid>
+          </Grid>
+        </Paper>
+      )}
 
       {/* Milk / Dairy Records */}
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>

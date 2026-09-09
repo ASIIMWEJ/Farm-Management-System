@@ -226,7 +226,7 @@ export default async function handler(
           }
 
           // Format incoming dates and optional relationships safely
-          const { dateOfBirth, acquisitionDate, damId, sireId, imageData, ...rest } = req.body;
+          const { dateOfBirth, acquisitionDate, disposalDate, damId, sireId, imageData, ...rest } = req.body;
 
           if (imageData && !isValidImageData(imageData)) {
             return res.status(400).json({ success: false, error: 'Upload a PNG, JPEG, WebP, or GIF image smaller than 5 MB.' });
@@ -240,8 +240,12 @@ export default async function handler(
           const updateData: any = { ...rest };
           if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
           if (acquisitionDate) updateData.acquisitionDate = new Date(acquisitionDate);
+          if (disposalDate !== undefined) updateData.disposalDate = disposalDate ? new Date(disposalDate) : null;
           if (updateData.acquisitionCost !== undefined) {
             updateData.acquisitionCost = updateData.acquisitionCost === '' ? null : parseFloat(updateData.acquisitionCost);
+          }
+          if (updateData.disposalValue !== undefined) {
+            updateData.disposalValue = updateData.disposalValue === '' ? null : parseFloat(updateData.disposalValue);
           }
           for (const numericField of ['weight', 'height', 'chest']) {
             if (updateData[numericField] !== undefined) {
@@ -275,9 +279,28 @@ export default async function handler(
             return res.status(400).json({ success: false, error: 'Animal ID is required' });
           }
 
+          const existingAnimal = await prisma.animal.findFirst({ where: { id: id as string, farmId } });
+          if (!existingAnimal) {
+            return res.status(404).json({ success: false, error: 'Animal record not found' });
+          }
+
+          // Permanent, irreversible removal of the record and its history
+          if (req.query.permanent === 'true') {
+            await prisma.animal.delete({ where: { id: id as string } });
+            return res.status(200).json({ success: true, data: null });
+          }
+
+          // Soft removal: mark the animal's outcome (sold, died, given away, etc.)
+          const { status, disposalDate, disposalReason, recipient, disposalValue } = req.body || {};
           await prisma.animal.update({
             where: { id: id as string },
-            data: { status: 'SOLD' },
+            data: {
+              status: status || 'SOLD',
+              disposalDate: disposalDate ? new Date(disposalDate) : new Date(),
+              disposalReason: disposalReason || undefined,
+              recipient: recipient || undefined,
+              disposalValue: disposalValue ? parseFloat(disposalValue) : undefined,
+            },
           });
 
           return res.status(200).json({ success: true, data: null });
@@ -285,7 +308,7 @@ export default async function handler(
           console.error('[DATABASE DELETE ERROR]:', dbError);
           return res.status(500).json({
             success: false,
-            error: 'Failed to archive animal record.',
+            error: 'Failed to remove animal record.',
           });
         }
       }

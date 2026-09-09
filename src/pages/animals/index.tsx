@@ -18,8 +18,14 @@ import {
   IconButton,
   Tooltip,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, DeleteForever as DeleteForeverIcon } from '@mui/icons-material';
 import BackButton from '@/components/BackButton';
 
 interface AnimalRecord {
@@ -33,12 +39,29 @@ interface AnimalRecord {
   imageData?: string;
 }
 
+const DISPOSAL_STATUSES = [
+  { value: 'SOLD', label: 'Sold' },
+  { value: 'DEAD', label: 'Died' },
+  { value: 'TRANSFERRED', label: 'Given to Someone' },
+  { value: 'MISSING', label: 'Missing' },
+];
+
 export default function AnimalsList() {
   const router = useRouter();
   
   const [animals, setAnimals] = useState<AnimalRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+
+  const [disposalTarget, setDisposalTarget] = useState<AnimalRecord | null>(null);
+  const [disposalForm, setDisposalForm] = useState({
+    status: 'SOLD',
+    disposalDate: new Date().toISOString().split('T')[0],
+    recipient: '',
+    disposalValue: '',
+    disposalReason: '',
+  });
+  const [disposalSaving, setDisposalSaving] = useState(false);
 
   const fetchAnimals = useCallback(async () => {
     setLoading(true);
@@ -90,15 +113,57 @@ export default function AnimalsList() {
   }, [fetchAnimals]);
 
   const deleteAnimal = async (animal: AnimalRecord) => {
-    if (!window.confirm(`Remove ${animal.earTag}? This archives the animal record.`)) return;
+    setDisposalTarget(animal);
+    setDisposalForm({
+      status: 'SOLD',
+      disposalDate: new Date().toISOString().split('T')[0],
+      recipient: '',
+      disposalValue: '',
+      disposalReason: '',
+    });
+  };
+
+  const submitDisposal = async () => {
+    if (!disposalTarget) return;
+    setDisposalSaving(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await fetch(`/api/animals?id=${encodeURIComponent(animal.id)}&farmId=${encodeURIComponent(user.farmId)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(
+        `/api/animals?id=${encodeURIComponent(disposalTarget.id)}&farmId=${encodeURIComponent(user.farmId)}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(disposalForm),
+        }
+      );
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to remove animal.');
+      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to update animal record.');
+      setDisposalTarget(null);
       await fetchAnimals();
-    } catch (requestError: any) { setError(requestError.message); }
+    } catch (requestError: any) {
+      setError(requestError.message);
+    } finally {
+      setDisposalSaving(false);
+    }
+  };
+
+  const deletePermanently = async (animal: AnimalRecord) => {
+    if (!window.confirm(`Permanently delete ${animal.earTag}? This cannot be undone and removes all its records.`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const response = await fetch(
+        `/api/animals?id=${encodeURIComponent(animal.id)}&farmId=${encodeURIComponent(user.farmId)}&permanent=true`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to permanently delete animal.');
+      await fetchAnimals();
+    } catch (requestError: any) {
+      setError(requestError.message);
+    }
   };
 
   return (
@@ -210,13 +275,22 @@ export default function AnimalsList() {
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Remove animal">
+                      <Tooltip title="Record sold / died / given away">
                         <IconButton
                           aria-label={`Remove ${animal.earTag}`}
                           color="error"
                           onClick={(e) => { e.stopPropagation(); deleteAnimal(animal); }}
                         >
                           <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete permanently">
+                        <IconButton
+                          aria-label={`Permanently delete ${animal.earTag}`}
+                          color="error"
+                          onClick={(e) => { e.stopPropagation(); deletePermanently(animal); }}
+                        >
+                          <DeleteForeverIcon />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -227,6 +301,58 @@ export default function AnimalsList() {
           </Table>
         </TableContainer>
       )}
+
+      <Dialog open={!!disposalTarget} onClose={() => setDisposalTarget(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Update Status for {disposalTarget?.earTag}</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField
+            select
+            label="Outcome"
+            value={disposalForm.status}
+            onChange={(e) => setDisposalForm({ ...disposalForm, status: e.target.value })}
+          >
+            {DISPOSAL_STATUSES.map((option) => (
+              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={disposalForm.disposalDate}
+            onChange={(e) => setDisposalForm({ ...disposalForm, disposalDate: e.target.value })}
+          />
+          {(disposalForm.status === 'SOLD' || disposalForm.status === 'TRANSFERRED') && (
+            <TextField
+              label={disposalForm.status === 'SOLD' ? 'Buyer Name' : 'Given To'}
+              value={disposalForm.recipient}
+              onChange={(e) => setDisposalForm({ ...disposalForm, recipient: e.target.value })}
+              placeholder="e.g. John Doe"
+            />
+          )}
+          {disposalForm.status === 'SOLD' && (
+            <TextField
+              label="Sale Price"
+              type="number"
+              value={disposalForm.disposalValue}
+              onChange={(e) => setDisposalForm({ ...disposalForm, disposalValue: e.target.value })}
+            />
+          )}
+          <TextField
+            label={disposalForm.status === 'DEAD' ? 'Cause of Death' : 'Notes'}
+            multiline
+            minRows={2}
+            value={disposalForm.disposalReason}
+            onChange={(e) => setDisposalForm({ ...disposalForm, disposalReason: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDisposalTarget(null)} disabled={disposalSaving}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={submitDisposal} disabled={disposalSaving}>
+            {disposalSaving ? 'Saving...' : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
