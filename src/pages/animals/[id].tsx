@@ -230,8 +230,12 @@ export default function AnimalProfile() {
             </Typography>
             <Typography>{animal.purchaseFrom || '—'}</Typography>
           </Grid>
-          <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Dam (Mother)</Typography><Typography>{animal.damAnimal ? (animal.damAnimal.name || animal.damAnimal.earTag) : '—'}</Typography></Grid>
-          <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Sire (Father)</Typography><Typography>{animal.sireAnimal ? (animal.sireAnimal.name || animal.sireAnimal.earTag) : '—'}</Typography></Grid>
+          {animal.acquisitionType !== 'PURCHASED' && animal.acquisitionType !== 'GIFTED' && (
+            <>
+              <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Dam (Mother)</Typography><Typography>{animal.damAnimal ? (animal.damAnimal.name || animal.damAnimal.earTag) : '—'}</Typography></Grid>
+              <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Sire (Father)</Typography><Typography>{animal.sireAnimal ? (animal.sireAnimal.name || animal.sireAnimal.earTag) : '—'}</Typography></Grid>
+            </>
+          )}
         </Grid>
       </Paper>
 

@@ -308,7 +308,16 @@ export default function RegisterAnimal() {
             select
             label="How Was This Animal Acquired?"
             value={form.acquisitionType}
-            onChange={(e) => setForm({ ...form, acquisitionType: e.target.value })}
+            onChange={(e) => {
+              const acquisitionType = e.target.value;
+              const knowsParents = acquisitionType === 'BORN_ON_FARM' || acquisitionType === 'OTHER';
+              setForm({
+                ...form,
+                acquisitionType,
+                damId: knowsParents ? form.damId : '',
+                sireId: knowsParents ? form.sireId : '',
+              });
+            }}
           >
             <MenuItem value="PURCHASED">Purchased</MenuItem>
             <MenuItem value="GIFTED">Gifted by a Friend / Relative</MenuItem>
@@ -352,30 +361,34 @@ export default function RegisterAnimal() {
               onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })}
             />
           )}
-          <TextField
-            select
-            label="Mother (Dam)"
-            value={form.damId}
-            onChange={(e) => setForm({ ...form, damId: e.target.value })}
-            helperText="Select a registered female animal, if known."
-          >
-            <MenuItem value="">Not recorded</MenuItem>
-            {parents.filter((animal) => animal.gender.toUpperCase() === 'FEMALE').map((animal) => (
-              <MenuItem key={animal.id} value={animal.id}>{animal.earTag}{animal.name ? ` - ${animal.name}` : ''}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Father (Sire)"
-            value={form.sireId}
-            onChange={(e) => setForm({ ...form, sireId: e.target.value })}
-            helperText="Select a registered male animal, if known."
-          >
-            <MenuItem value="">Not recorded</MenuItem>
-            {parents.filter((animal) => animal.gender.toUpperCase() === 'MALE').map((animal) => (
-              <MenuItem key={animal.id} value={animal.id}>{animal.earTag}{animal.name ? ` - ${animal.name}` : ''}</MenuItem>
-            ))}
-          </TextField>
+          {(form.acquisitionType === 'BORN_ON_FARM' || form.acquisitionType === 'OTHER') && (
+            <>
+              <TextField
+                select
+                label="Mother (Dam)"
+                value={form.damId}
+                onChange={(e) => setForm({ ...form, damId: e.target.value })}
+                helperText="Select a registered female animal, if known."
+              >
+                <MenuItem value="">Not recorded</MenuItem>
+                {parents.filter((animal) => animal.gender.toUpperCase() === 'FEMALE').map((animal) => (
+                  <MenuItem key={animal.id} value={animal.id}>{animal.earTag}{animal.name ? ` - ${animal.name}` : ''}</MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                label="Father (Sire)"
+                value={form.sireId}
+                onChange={(e) => setForm({ ...form, sireId: e.target.value })}
+                helperText="Select a registered male animal, if known."
+              >
+                <MenuItem value="">Not recorded</MenuItem>
+                {parents.filter((animal) => animal.gender.toUpperCase() === 'MALE').map((animal) => (
+                  <MenuItem key={animal.id} value={animal.id}>{animal.earTag}{animal.name ? ` - ${animal.name}` : ''}</MenuItem>
+                ))}
+              </TextField>
+            </>
+          )}
           <Box display="flex" gap={2} mt={2}>
             <Button variant="outlined" fullWidth type="button" onClick={() => router.back()}>
               Cancel
