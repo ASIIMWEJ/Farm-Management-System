@@ -34,6 +34,7 @@ export default function RegisterAnimal() {
     dateOfBirth: '',
     acquisitionDate: new Date().toISOString().split('T')[0],
     acquisitionCost: '',
+    acquisitionType: 'PURCHASED',
     damId: '',
     sireId: '',
     imageData: '',
@@ -87,6 +88,7 @@ export default function RegisterAnimal() {
         dateOfBirth: animal.dateOfBirth?.slice(0, 10) || '',
         acquisitionDate: animal.acquisitionDate?.slice(0, 10) || '',
         acquisitionCost: animal.acquisitionCost?.toString() || '',
+        acquisitionType: animal.acquisitionType || 'PURCHASED',
         damId: animal.damId || '',
         sireId: animal.sireId || '',
         imageData: animal.imageData || '',
@@ -303,11 +305,53 @@ export default function RegisterAnimal() {
             placeholder="e.g. Shed A"
           />
           <TextField
-            label="Purchased From"
-            value={form.purchaseFrom}
-            onChange={(e) => setForm({ ...form, purchaseFrom: e.target.value })}
-            placeholder="e.g. Kampala Livestock Market"
+            select
+            label="How Was This Animal Acquired?"
+            value={form.acquisitionType}
+            onChange={(e) => setForm({ ...form, acquisitionType: e.target.value })}
+          >
+            <MenuItem value="PURCHASED">Purchased</MenuItem>
+            <MenuItem value="GIFTED">Gifted by a Friend / Relative</MenuItem>
+            <MenuItem value="BORN_ON_FARM">Born on the Farm</MenuItem>
+            <MenuItem value="OTHER">Other</MenuItem>
+          </TextField>
+          <TextField
+            label="Acquisition Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={form.acquisitionDate}
+            onChange={(e) => setForm({ ...form, acquisitionDate: e.target.value })}
           />
+          {form.acquisitionType === 'GIFTED' ? (
+            <TextField
+              label="Given By (Friend's Name)"
+              value={form.purchaseFrom}
+              onChange={(e) => setForm({ ...form, purchaseFrom: e.target.value })}
+              placeholder="e.g. James, a friend"
+            />
+          ) : form.acquisitionType === 'PURCHASED' ? (
+            <TextField
+              label="Purchased From"
+              value={form.purchaseFrom}
+              onChange={(e) => setForm({ ...form, purchaseFrom: e.target.value })}
+              placeholder="e.g. Kampala Livestock Market"
+            />
+          ) : (
+            <TextField
+              label="Notes"
+              value={form.purchaseFrom}
+              onChange={(e) => setForm({ ...form, purchaseFrom: e.target.value })}
+              placeholder="e.g. Born to Daisy on the farm"
+            />
+          )}
+          {form.acquisitionType === 'PURCHASED' && (
+            <TextField
+              label="Acquisition Cost"
+              type="number"
+              value={form.acquisitionCost}
+              onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })}
+            />
+          )}
           <TextField
             select
             label="Mother (Dam)"

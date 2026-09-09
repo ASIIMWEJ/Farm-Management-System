@@ -74,6 +74,7 @@ interface AnimalDetail {
   status: string;
   acquisitionDate: string;
   acquisitionCost?: number;
+  acquisitionType?: string;
   purchaseFrom?: string;
   disposalDate?: string;
   disposalReason?: string;
@@ -95,6 +96,13 @@ function formatDate(value?: string) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString();
 }
+
+const ACQUISITION_LABELS: Record<string, string> = {
+  PURCHASED: 'Purchased',
+  GIFTED: 'Gifted by a Friend / Relative',
+  BORN_ON_FARM: 'Born on the Farm',
+  OTHER: 'Other',
+};
 
 export default function AnimalProfile() {
   const router = useRouter();
@@ -212,8 +220,16 @@ export default function AnimalProfile() {
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Height</Typography><Typography>{animal.height ? `${animal.height} cm` : '—'}</Typography></Grid>
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Chest Girth</Typography><Typography>{animal.chest ? `${animal.chest} cm` : '—'}</Typography></Grid>
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Acquisition Date</Typography><Typography>{formatDate(animal.acquisitionDate)}</Typography></Grid>
-          <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Acquisition Cost</Typography><Typography>{animal.acquisitionCost ?? '—'}</Typography></Grid>
-          <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Purchased From</Typography><Typography>{animal.purchaseFrom || '—'}</Typography></Grid>
+          <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">How Acquired</Typography><Typography>{ACQUISITION_LABELS[animal.acquisitionType || 'PURCHASED']}</Typography></Grid>
+          {animal.acquisitionType === 'PURCHASED' && (
+            <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Acquisition Cost</Typography><Typography>{animal.acquisitionCost ?? '—'}</Typography></Grid>
+          )}
+          <Grid item xs={6} sm={3}>
+            <Typography variant="body2" color="textSecondary">
+              {animal.acquisitionType === 'GIFTED' ? 'Given By' : animal.acquisitionType === 'PURCHASED' ? 'Purchased From' : 'Notes'}
+            </Typography>
+            <Typography>{animal.purchaseFrom || '—'}</Typography>
+          </Grid>
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Dam (Mother)</Typography><Typography>{animal.damAnimal ? (animal.damAnimal.name || animal.damAnimal.earTag) : '—'}</Typography></Grid>
           <Grid item xs={6} sm={3}><Typography variant="body2" color="textSecondary">Sire (Father)</Typography><Typography>{animal.sireAnimal ? (animal.sireAnimal.name || animal.sireAnimal.earTag) : '—'}</Typography></Grid>
         </Grid>

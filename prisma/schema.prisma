@@ -120,6 +120,13 @@ enum AnimalStatus {
   MISSING
 }
 
+enum AcquisitionType {
+  PURCHASED
+  GIFTED
+  BORN_ON_FARM
+  OTHER
+}
+
 model Animal {
   id      String @id @default(cuid())
   farm    Farm   @relation(fields: [farmId], references: [id])
@@ -139,9 +146,10 @@ model Animal {
 
   // Status
   status          AnimalStatus @default(ACTIVE)
+  acquisitionType AcquisitionType @default(PURCHASED)
   acquisitionDate DateTime
   acquisitionCost Float?
-  purchaseFrom    String? // received from (e.g. seller/donor) when acquired
+  purchaseFrom    String? // seller name if purchased, or giver's name if gifted
 
   // Disposal (sold / died / given away / missing)
   disposalDate   DateTime?
