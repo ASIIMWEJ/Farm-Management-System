@@ -9,11 +9,14 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Avatar,
 } from '@mui/material';
+import { Agriculture as AgricultureIcon } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import BackButton from '@/components/BackButton';
+import FarmBackground from '@/components/FarmBackground';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -65,22 +68,39 @@ export default function Login() {
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
+        p: 2,
       }}
     >
-      <Container maxWidth="sm">
-        <Card sx={{ p: 4 }}>
+      <FarmBackground />
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Card
+          sx={{
+            p: 4,
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.92)',
+            border: '1px solid rgba(31, 107, 79, 0.15)',
+          }}
+        >
           <BackButton fallback="/" />
-          <Typography variant="h3" component="h1" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-            FMIS Login
-          </Typography>
+          <Box display="flex" flexDirection="column" alignItems="center" mb={1}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56, mb: 1 }}>
+              <AgricultureIcon fontSize="large" />
+            </Avatar>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ textAlign: 'center' }}>
+              FMIS Login
+            </Typography>
+            <Typography color="textSecondary" sx={{ textAlign: 'center' }}>
+              Welcome back to your Farm Management Information System
+            </Typography>
+          </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, mt: 2 }}>
               {error}
             </Alert>
           )}
@@ -109,7 +129,7 @@ export default function Login() {
             <Button
               fullWidth
               variant="contained"
-              sx={{ mt: 3 }}
+              sx={{ mt: 3, py: 1.25 }}
               type="submit"
               disabled={loading}
             >
@@ -121,7 +141,7 @@ export default function Login() {
             Forgot password?
           </Button>
 
-          <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', mt: 2 }}>
             Sign in with the administrator credentials configured for this farm.
           </Typography>
         </Card>

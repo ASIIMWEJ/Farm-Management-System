@@ -1,7 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Alert, Button, Card, Container, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, Container, TextField, Typography } from '@mui/material';
 import BackButton from '@/components/BackButton';
+import FarmBackground from '@/components/FarmBackground';
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -42,17 +43,19 @@ export default function ResetPassword() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Card sx={{ p: 4 }}>
-        <BackButton fallback="/login" />
-        <Typography variant="h4" gutterBottom>Reset Password</Typography>
-        {message ? (
-          <>
-            <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>
-            <Button fullWidth variant="contained" onClick={() => router.push('/login')}>Go to Login</Button>
-          </>
-        ) : (
-          <form onSubmit={submit}>
+    <Box sx={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+      <FarmBackground />
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Card sx={{ p: 4, backdropFilter: 'blur(6px)', backgroundColor: 'rgba(255, 255, 255, 0.92)' }}>
+          <BackButton fallback="/login" />
+          <Typography variant="h4" gutterBottom>Reset Password</Typography>
+          {message ? (
+            <>
+              <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>
+              <Button fullWidth variant="contained" onClick={() => router.push('/login')}>Go to Login</Button>
+            </>
+          ) : (
+            <form onSubmit={submit}>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <TextField
               fullWidth
@@ -74,9 +77,10 @@ export default function ResetPassword() {
             <Button fullWidth variant="contained" type="submit" disabled={loading || !token} sx={{ mt: 3 }}>
               {loading ? 'Updating...' : 'Update Password'}
             </Button>
-          </form>
-        )}
-      </Card>
-    </Container>
+            </form>
+          )}
+        </Card>
+      </Container>
+    </Box>
   );
 }

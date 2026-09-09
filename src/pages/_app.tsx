@@ -8,7 +8,7 @@ import '@/styles/globals.css';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#ba7de0',
+      main: '#1f6b4f',
       dark: '#124635',
       light: '#dcefe5',
     },
@@ -23,6 +23,9 @@ const theme = createTheme({
     },
     error: {
       main: '#E53935',
+    },
+    background: {
+      default: '#f4f7f2',
     },
   },
   typography: {
@@ -57,7 +60,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
-          borderRadius: '6px',
+          borderRadius: '8px',
           fontWeight: 700,
         },
       },
@@ -65,8 +68,15 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: '6px',
+          borderRadius: '14px',
           boxShadow: '0 3px 12px rgba(20, 50, 38, 0.08)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        rounded: {
+          borderRadius: '14px',
         },
       },
     },

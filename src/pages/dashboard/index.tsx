@@ -32,6 +32,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { DashboardStats } from '@/types';
 import BackButton from '@/components/BackButton';
+import FarmBackground from '@/components/FarmBackground';
 
 const DRAWER_WIDTH = 240;
 
@@ -103,20 +104,30 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ position: 'relative', minHeight: '100vh' }}>
+        <FarmBackground />
+        <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <CircularProgress />
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', position: 'relative', minHeight: '100vh' }}>
+      <FarmBackground />
       {/* App Bar */}
-      <AppBar position="fixed" sx={{ zIndex: 1300 }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          zIndex: 1300,
+          background: 'linear-gradient(90deg, #124635 0%, #1f6b4f 100%)',
+        }}
+      >
         <Toolbar>
           <BackButton fallback="/" />
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Farm Management Information System
+            🌾 Farm Management Information System
           </Typography>
           <Typography variant="body2" sx={{ mr: 2 }}>
             {userEmail}
@@ -136,14 +147,26 @@ export default function Dashboard() {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
             mt: '64px',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(6px)',
+            borderRight: '1px solid rgba(31, 107, 79, 0.12)',
           },
         }}
       >
         <List>
           {menuItems.map((item) => (
             <Link key={item.href} href={item.href}>
-              <ListItem button component="a">
-                <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItem
+                button
+                component="a"
+                sx={{
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: '10px',
+                  '&:hover': { backgroundColor: 'rgba(31, 107, 79, 0.08)' },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'primary.main' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} />
               </ListItem>
             </Link>
@@ -155,6 +178,8 @@ export default function Dashboard() {
       <Box
         component="main"
         sx={{
+          position: 'relative',
+          zIndex: 1,
           flexGrow: 1,
           p: 3,
           ml: DRAWER_WIDTH,
@@ -162,18 +187,31 @@ export default function Dashboard() {
         }}
       >
         <Container maxWidth="lg">
-          <Typography variant="h4" gutterBottom>
-            Dashboard
-          </Typography>
+          <Box
+            sx={{
+              mb: 3,
+              p: 3,
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(31,107,79,0.95) 0%, rgba(18,70,53,0.95) 100%)',
+              color: '#fff',
+            }}
+          >
+            <Typography variant="h4" gutterBottom>
+              Welcome back 👋
+            </Typography>
+            <Typography sx={{ opacity: 0.85 }}>
+              Here&apos;s what&apos;s happening on your farm today.
+            </Typography>
+          </Box>
 
           {stats && (
             <Grid container spacing={3}>
               {/* Stats Cards */}
               <Grid item xs={12} sm={6} md={3}>
-                <Card>
+                <Card sx={{ borderLeft: '5px solid #1f6b4f' }}>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Total Animals
+                      🐄 Total Animals
                     </Typography>
                     <Typography variant="h5">
                       {stats.totalAnimals}
@@ -183,10 +221,10 @@ export default function Dashboard() {
               </Grid>
 
               <Grid item xs={12} sm={6} md={3}>
-                <Card>
+                <Card sx={{ borderLeft: '5px solid #4fa8ff' }}>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Daily Milk Production
+                      🥛 Daily Milk Production
                     </Typography>
                     <Typography variant="h5">
                       {stats.dailyMilkProduction} L
@@ -196,10 +234,10 @@ export default function Dashboard() {
               </Grid>
 
               <Grid item xs={12} sm={6} md={3}>
-                <Card>
+                <Card sx={{ borderLeft: '5px solid #c96a23' }}>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Monthly Revenue
+                      💰 Monthly Revenue
                     </Typography>
                     <Typography variant="h5">
                       ${stats.monthlyRevenue.toFixed(2)}
@@ -209,10 +247,10 @@ export default function Dashboard() {
               </Grid>
 
               <Grid item xs={12} sm={6} md={3}>
-                <Card>
+                <Card sx={{ borderLeft: '5px solid #8a4a3a' }}>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Active Employees
+                      👩‍🌾 Active Employees
                     </Typography>
                     <Typography variant="h5">
                       {stats.activeEmployees}
