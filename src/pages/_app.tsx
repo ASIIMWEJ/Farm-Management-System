@@ -107,6 +107,13 @@ export default function App({
     setAuthChecked(true);
   }, [router, isPublicRoute]);
 
+  // Register the PWA service worker so the app can be installed on Android home screens.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
   // Never render protected page content until the auth check has passed,
   // otherwise navigating straight to a URL briefly bypasses the login screen.
   if (!authChecked) {
