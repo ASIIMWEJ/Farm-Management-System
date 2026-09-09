@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import type { ApiResponse, PaginatedResponse } from '@/types';
 import type { HealthRecord } from '@prisma/client';
+import { authenticateRequest } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -13,8 +14,8 @@ export default async function handler(
   const { id } = req.query;
 
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
+    const requester = await authenticateRequest(req);
+    if (!requester) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import type { ApiResponse, DashboardStats } from '@/types';
+import { authenticateRequest } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -13,18 +14,13 @@ export default async function handler(
   }
 
   try {
-    // Get authorization token
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
+    // Verify the JWT and resolve the farm from the authenticated user, never from client input
+    const requester = await authenticateRequest(req);
+    if (!requester) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    // Get farm ID from query or token (simplified for now)
-    const farmId = req.query.farmId as string;
-
-    if (!farmId) {
-      return res.status(400).json({ success: false, error: 'Farm ID is required' });
-    }
+    const farmId = requester.farmId;
 
     // Fetch dashboard statistics
     const totalAnimals = await prisma.animal.count({

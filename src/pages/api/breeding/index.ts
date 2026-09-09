@@ -1,17 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import type { ApiResponse } from '@/types';
+import { authenticateRequest } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
-function farmIdFromRequest(req: NextApiRequest) {
-  if (!req.headers.authorization?.startsWith('Bearer ')) return null;
-  return req.query.farmId as string;
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse<unknown>>) {
-  const farmId = farmIdFromRequest(req);
-  if (!farmId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const requester = await authenticateRequest(req);
+  if (!requester) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const farmId = requester.farmId;
   const id = req.query.id as string;
 
   if (req.method === 'GET') {

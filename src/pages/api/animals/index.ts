@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient, Animal } from '@prisma/client';
 import type { ApiResponse, PaginatedResponse } from '@/types';
+import { authenticateRequest } from '@/utils/auth';
 
 // Singleton instance to prevent connection leaks during Next.js hot reloads
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
@@ -55,19 +56,16 @@ export default async function handler(
   const { id } = req.query;
 
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
+    const requester = await authenticateRequest(req);
+    if (!requester) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
       });
     }
 
-    // Tenant identity resolution
-    const farmId = req.query.farmId as string;
-    if (!farmId) {
-      return res.status(400).json({ success: false, error: 'Farm ID is required' });
-    }
+    // Tenant identity resolution — always the authenticated user's own farm, never client-supplied
+    const farmId = requester.farmId;
 
     // Standard relational include object for mother and father details
     const pedigreeIncludes = {

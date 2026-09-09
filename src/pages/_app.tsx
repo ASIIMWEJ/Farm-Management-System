@@ -1,5 +1,5 @@
 import type { AppProps } from 'next/app';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { SessionProvider } from 'next-auth/react';
@@ -86,12 +86,22 @@ export default function App({
 }: AppProps) {
   const router = useRouter();
   const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.includes(router.pathname);
+  const [authChecked, setAuthChecked] = useState(isPublicRoute);
 
   useEffect(() => {
-    if (!publicRoutes.includes(router.pathname) && !localStorage.getItem('token')) {
+    if (!isPublicRoute && !localStorage.getItem('token')) {
       router.replace('/login');
+      return;
     }
-  }, [router]);
+    setAuthChecked(true);
+  }, [router, isPublicRoute]);
+
+  // Never render protected page content until the auth check has passed,
+  // otherwise navigating straight to a URL briefly bypasses the login screen.
+  if (!authChecked) {
+    return null;
+  }
 
   return (
     <SessionProvider session={session}>
